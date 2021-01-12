@@ -88,7 +88,7 @@ class SingleLinkedList {
         // Возвращает ссылку на самого себя
         // Инкремент итератора, не указывающего на существующий элемент списка, приводит к неопределённому поведению
         BasicIterator& operator++() noexcept {
-            node_ = (*node_).next_node;
+            node_ = node_->next_node;
             return *this;
         }
 
@@ -106,14 +106,14 @@ class SingleLinkedList {
         // Вызов этого оператора, у итератора, не указывающего на существующий элемент списка,
         // приводит к неопределённому поведению
         [[nodiscard]] reference operator*() const noexcept {
-            return (*node_).value;
+            return node_->value;
         }
 
         // Операция доступа к члену класса. Возвращает указатель на текущий элемент списка.
         // Вызов этого оператора, у итератора, не указывающего на существующий элемент списка,
         // приводит к неопределённому поведению
         [[nodiscard]] pointer operator->() const noexcept {
-            return &(*node_).value;
+            return &node_->value;
         }
 
     private:
