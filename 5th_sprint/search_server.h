@@ -1,15 +1,16 @@
 #pragma once
 
-#include <string>
-#include <stdexcept>
-#include <vector>
-#include <tuple>
-#include <set>
-#include <map>
 #include "document.h"
 #include "string_processing.h"
+
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <set>
+#include <string>
+#include <stdexcept>
+#include <tuple>
+#include <vector>
 
 using namespace std::string_literals;
 
@@ -30,8 +31,7 @@ public:
     explicit SearchServer(const std::string& stop_words_text);
 
     void AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
-{
-    LOG_DURATION_STREAM("Operation time"s);
+
     template <typename DocumentPredicate>
     std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentPredicate document_predicate) const {
         const auto query = ParseQuery(raw_query);
@@ -39,7 +39,7 @@ public:
         auto matched_documents = FindAllDocuments(query, document_predicate);
         
         sort(matched_documents.begin(), matched_documents.end(), [](const Document& lhs, const Document& rhs) {
-				if (abs(lhs.relevance - rhs.relevance) < ACCURACY) {
+				if (std::abs(lhs.relevance - rhs.relevance) < ACCURACY) {
 					return lhs.rating > rhs.rating;
 				} else {
 					return lhs.relevance > rhs.relevance;
@@ -51,7 +51,7 @@ public:
 
         return matched_documents;
     }
-}
+
 
     std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentStatus status) const;
 
@@ -59,7 +59,13 @@ public:
 
     int GetDocumentCount() const;
 
-    int GetDocumentId(int index) const;
+    std::vector<int>::const_iterator begin() const;
+    
+    std::vector<int>::const_iterator end() const;
+    
+    const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
+    
+    void RemoveDocument(int document_id);
 
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
 
@@ -70,6 +76,7 @@ private:
     };
     const std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
+    std::map<int, std::map<std::string, double>> document_to_word_freqs_;
     std::map<int, DocumentData> documents_;
     std::vector<int> document_ids_;
 

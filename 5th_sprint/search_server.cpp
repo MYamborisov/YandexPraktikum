@@ -17,6 +17,7 @@ using namespace std;
         const double inv_word_count = static_cast<double>(1) / words.size();
         for (const string& word : words) {
             word_to_document_freqs_[word][document_id] += inv_word_count;
+            document_to_word_freqs_[document_id][word] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
         document_ids_.push_back(document_id);
@@ -37,12 +38,34 @@ using namespace std;
         return documents_.size();
     }
 
-    int SearchServer::GetDocumentId(int index) const {
-        return document_ids_.at(index);
+    std::vector<int>::const_iterator SearchServer::begin() const {
+        return document_ids_.cbegin();
     }
 
-    {
-        LOG_DURATION_STREAM("Operation time"s);
+    std::vector<int>::const_iterator SearchServer::end() const {
+        return document_ids_.cend();
+    }
+
+    const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
+        static const std::map<std::string, double> EMPTY_MAP;
+        if (document_to_word_freqs_.count(document_id)) {
+            return document_to_word_freqs_.at(document_id);
+        }
+        else {
+            return EMPTY_MAP;
+        }
+    }
+
+    void SearchServer::RemoveDocument(int document_id) {
+        for (auto [word, freq] : document_to_word_freqs_[document_id]) {
+            word_to_document_freqs_[word].erase(document_id);
+        }
+        document_to_word_freqs_.erase(document_id);
+        documents_.erase(document_id);
+        auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
+        document_ids_.erase(it);
+    }
+
     tuple<vector<string>, DocumentStatus> SearchServer::MatchDocument(const string& raw_query, int document_id) const {
         const auto query = ParseQuery(raw_query);
 
@@ -65,7 +88,6 @@ using namespace std;
             }
         }
         return {matched_words, documents_.at(document_id).status};
-    }
     }
 
     bool SearchServer::IsStopWord(const string& word) const {

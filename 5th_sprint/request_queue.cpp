@@ -29,14 +29,14 @@ using namespace std;
         ++current_time_;
         // deleting all search results that are outdated
         while (!requests_.empty() && sec_in_day_ <= current_time_ - requests_.front().timestamp) {
-            if (0 == requests_.front().results) {
+            if (requests_.front().results == 0) {
                 --no_results_requests_;
             }
             requests_.pop_front();
         }
         // saving the new search result
         requests_.push_back({current_time_, results_num});
-        if (0 == results_num) {
+        if (results_num == 0) {
             ++no_results_requests_;
         }
     }
