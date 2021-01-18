@@ -163,8 +163,7 @@ public:
 			items.swap(tmp);
 			std::fill(end(), begin() + (new_capacity - capacity_), Type{});
 			capacity_ = new_capacity;
-		}
-		else if (new_size > size_) {
+		} else if (new_size > size_) {
 			std::fill(end(), begin() + new_size, Type{});
 		}
 		size_ = new_size; 

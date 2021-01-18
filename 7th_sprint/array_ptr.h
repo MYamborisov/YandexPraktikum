@@ -13,8 +13,7 @@ public:
     explicit ArrayPtr(size_t size) {
         if (size == 0) {
             raw_ptr_ = nullptr;
-        }
-        else {
+        } else {
             raw_ptr_ = new Type[size];
         }
     }
@@ -43,13 +42,13 @@ public:
     }
 
     // Возвращает ссылку на элемент массива с индексом index
-    Type& operator[](size_t index) noexcept {
-        return *(raw_ptr_ + (int)index);
+    Type& operator[](int index) noexcept {
+        return *(raw_ptr_ + index);
     }
 
     // Возвращает константную ссылку на элемент массива с индексом index
-    const Type& operator[](size_t index) const noexcept {
-        return *(raw_ptr_ + (int)index);
+    const Type& operator[](int index) const noexcept {
+        return *(raw_ptr_ + index);
     }
 
     // Возвращает true, если указатель ненулевой, и false в противном случае
