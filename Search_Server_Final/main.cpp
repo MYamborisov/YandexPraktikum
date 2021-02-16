@@ -17,34 +17,24 @@ void PrintDocument(const Document& document) {
 
 int main() {
     SearchServer search_server("and with"s);
-
-    for (
-            int id = 0;
-
-            const string& text : {
-            "white cat and yellow hat"s,
-            "curly cat curly tail"s,
-            "nasty dog with big eyes"s,
-            "nasty pigeon john"s,
-
-    }
-            ) {
-        search_server.AddDocument(++id, text, DocumentStatus::ACTUAL, {1, 2});
+    vector<string> samples = {"white cat and yellow hat"s, "curly cat curly tail"s, "nasty dog with big eyes"s, "nasty pigeon john"s};
+    for (size_t id = 0; id < samples.size(); ++id) {
+        search_server.AddDocument(id, samples[id], DocumentStatus::ACTUAL, {1, 2});
     }
 
     cout << "ACTUAL by default:"s << endl;
-    // последовательная версия
+    // sequential version
     for (const Document& document : search_server.FindTopDocuments("curly nasty cat"s)) {
         PrintDocument(document);
     }
     cout << "BANNED:"s << endl;
-    // последовательная версия
+    // sequential version
     for (const Document& document : search_server.FindTopDocuments(execution::seq, "curly nasty cat"s, DocumentStatus::BANNED)) {
         PrintDocument(document);
     }
 
     cout << "Even ids:"s << endl;
-    // параллельная версия
+    // parallel version
     for (const Document& document : search_server.FindTopDocuments(execution::par, "curly nasty cat"s, [](int document_id, DocumentStatus status, int rating) { return document_id % 2 == 0; })) {
         PrintDocument(document);
     }

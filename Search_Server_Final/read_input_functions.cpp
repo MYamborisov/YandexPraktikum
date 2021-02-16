@@ -5,9 +5,9 @@
 using namespace std;
 
 string ReadLine() {
-    string s;
-    getline(cin, s);
-    return s;
+    string input_string;
+    getline(cin, input_string);
+    return input_string;
 }
 
 int ReadLineWithNumber() {

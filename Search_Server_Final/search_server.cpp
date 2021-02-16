@@ -119,8 +119,8 @@ bool SearchServer::IsStopWord(string_view word) const {
 
 bool SearchServer::IsValidWord(string_view word) {
     // A valid word must not contain special characters
-    return none_of(word.begin(), word.end(), [](char c) {
-        return c >= '\0' && c < ' ';
+    return none_of(word.begin(), word.end(), [](char character) {
+        return character >= '\0' && character < ' ';
     });
 }
 

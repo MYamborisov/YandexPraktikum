@@ -1,6 +1,8 @@
 #pragma once
-#include <deque>
+
 #include "search_server.h"
+
+#include <deque>
 
 class RequestQueue {
 public:
@@ -36,7 +38,7 @@ private:
     const SearchServer& search_server_;
     int no_results_requests_;
     uint64_t current_time_;
-    const static int sec_in_day_ = 1440;
+    constexpr static int sec_in_day_ = 1440;
 
     void AddRequest(int results_num);
 };

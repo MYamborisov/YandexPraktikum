@@ -1,7 +1,8 @@
 #pragma once
+
 #include <algorithm>
-#include <vector>
 #include <iostream>
+#include <vector>
 
 template <typename Iterator>
 class IteratorRange {
@@ -68,6 +69,6 @@ private:
 };
 
 template <typename Container>
-auto Paginate(const Container& c, size_t page_size) {
-    return Paginator(begin(c), end(c), page_size);
+auto Paginate(const Container& container, size_t page_size) {
+    return Paginator(begin(container), end(container), page_size);
 }
