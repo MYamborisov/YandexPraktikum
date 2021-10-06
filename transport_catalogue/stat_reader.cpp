@@ -7,9 +7,9 @@ using namespace std;
 
 void ReadOutputRequests(int number_output, TransportCatalogue* t_cat) {
     for (int i = 0; i < number_output; ++i) {
-        string delimeter;
-        cin >> delimeter;
-        if (delimeter == "Bus") {
+        string delimiter;
+        cin >> delimiter;
+        if (delimiter == "Bus") {
             string bus;
             getline(cin, bus);
             DeleteSpaces(bus);
@@ -22,7 +22,7 @@ void ReadOutputRequests(int number_output, TransportCatalogue* t_cat) {
             } else {
                 cout << "Bus " << bus << ": not found" << endl;
             }
-        } else if (delimeter == "Stop") {
+        } else if (delimiter == "Stop") {
             string stop;
             getline(cin, stop);
             DeleteSpaces(stop);
