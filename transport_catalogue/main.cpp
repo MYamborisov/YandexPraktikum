@@ -7,11 +7,11 @@
 using namespace std;
 
 int main() {
-    TransportCatalogue cat;
+    transport_catalogue::TransportCatalogue cat;
     int number_input, number_output;
     cin >> number_input;
-    ReadInputRequests(number_input, &cat);
+    transport_catalogue::input::ReadInputRequests(number_input, &cat);
     cin >> number_output;
-    ReadOutputRequests(number_output, &cat);
+    transport_catalogue::requests::ReadOutputRequests(number_output, &cat);
     return 0;
 }

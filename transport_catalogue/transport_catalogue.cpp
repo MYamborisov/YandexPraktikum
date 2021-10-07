@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 using namespace std;
+using namespace transport_catalogue;
 
 void TransportCatalogue::AddStop(TransportCatalogue::Stop& stop) {
     stops_.push_back(move(stop));

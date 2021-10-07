@@ -2,25 +2,21 @@
 
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 
-void DeleteSpaces(string& line) {
-    int i = 0;
-    while (line[i] == ' ') {
-        ++i;
-    }
-    line.erase(0, i);
-    if (line[line.size() - 1] == ' ') {
-        i = line.size() - 1;
-        while (line[i] == ' ') {
-            --i;
-        }
-        line.erase(i + 1, line.size() - i - 1);
+void transport_catalogue::details::DeleteSpaces(string& line) {
+    size_t first = line.find_first_not_of(" ");
+    size_t last = line.find_last_not_of(" ");
+    if (last != string::npos) {
+        line = move(line.substr(first, last - first + 1));
+    } else {
+        line = "";
     }
 }
 
-std::deque<std::string> SplitBusLine(std::string& line) {
+std::deque<std::string> transport_catalogue::input::SplitBusLine(std::string& line) {
     deque<string> result;
     bool is_circle;
     char delim;
@@ -34,7 +30,7 @@ std::deque<std::string> SplitBusLine(std::string& line) {
     string stop;
     stringstream ss(line);
     while(getline(ss, stop, delim)) {
-        DeleteSpaces(stop);
+        transport_catalogue::details::DeleteSpaces(stop);
         result.push_back(stop);
     }
     if (!is_circle) {
@@ -45,21 +41,21 @@ std::deque<std::string> SplitBusLine(std::string& line) {
     return result;
 }
 
-void SplitStopLine(std::string& line, std::deque<tuple<string, string, int>>& distances, const string& name) {
+void transport_catalogue::input::SplitStopLine(std::string& line, std::deque<tuple<string, string, int>>& distances, const string& name) {
     string stop, m, to;
     stringstream ss(line);
     int dist;
     while(ss >> dist >> m >> to) {
         getline(ss, stop, ',');
-        DeleteSpaces(stop);
+        transport_catalogue::details::DeleteSpaces(stop);
         distances.emplace_back(name, stop, dist);
     }
 }
 
-void ReadStop(TransportCatalogue* t_cat, std::deque<tuple<string, string, int>>& distances) {
-    TransportCatalogue::Stop stop;
+void transport_catalogue::input::ReadStop(transport_catalogue::TransportCatalogue* t_cat, std::deque<tuple<string, string, int>>& distances) {
+    transport_catalogue::TransportCatalogue::Stop stop;
     getline(cin, stop.stop_name, ':');
-    DeleteSpaces(stop.stop_name);
+    transport_catalogue::details::DeleteSpaces(stop.stop_name);
     double lat, lng;
     char comma;
     cin >> lat >> comma >> lng;
@@ -73,16 +69,16 @@ void ReadStop(TransportCatalogue* t_cat, std::deque<tuple<string, string, int>>&
     t_cat->AddStop(stop);
 }
 
-void ReadBusLine(std::unordered_map<std::string, std::deque<std::string>> & buses) {
+void transport_catalogue::input::ReadBusLine(std::unordered_map<std::string, std::deque<std::string>> & buses) {
     string bus;
     string line;
     getline(cin, bus, ':');
-    DeleteSpaces(bus);
+    transport_catalogue::details::DeleteSpaces(bus);
     getline(cin, line);
     buses[move(bus)] = SplitBusLine(line);;
 }
 
-void ReadInputRequests(int number_of_requests, TransportCatalogue* t_cat) {
+void transport_catalogue::input::ReadInputRequests(int number_of_requests, TransportCatalogue* t_cat) {
 
     std::unordered_map<std::string, std::deque<std::string>> buses;
     std::deque<tuple<string, string, int>> distances;
