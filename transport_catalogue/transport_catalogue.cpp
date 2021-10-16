@@ -5,15 +5,15 @@
 
 namespace transport_catalogue {
 
-    void TransportCatalogue::AddStop(TransportCatalogue::Stop &stop) {
+    void TransportCatalogue::AddStop(domain::Stop &stop) {
         stops_.push_back(std::move(stop));
         stop_to_coords[stops_.back().stop_name] = &stops_.back();
         stop_to_buses[stops_.back().stop_name];
     }
 
     void TransportCatalogue::AddBus(const std::string &bus, const std::deque<std::string> &route) {
-        TransportCatalogue::Bus bus_struct;
-        TransportCatalogue::BusStatistics bus_stat_struct;
+        domain::Bus bus_struct;
+        domain::BusStatistics bus_stat_struct;
         double straight_dist = 0;
         bus_struct.bus_name = bus;
         bus_stat_struct.all_stops = route.size();
@@ -43,7 +43,7 @@ namespace transport_catalogue {
         dist_between_stops[pair] = dist;
     }
 
-    const TransportCatalogue::Bus *TransportCatalogue::GetBus(const std::string &bus) const {
+    const domain::Bus *TransportCatalogue::GetBus(const std::string &bus) const {
         if (bus_to_description.count(bus)) {
             return bus_to_description.at(bus);
         } else {
@@ -51,7 +51,7 @@ namespace transport_catalogue {
         }
     }
 
-    const TransportCatalogue::BusStatistics *TransportCatalogue::GetBusStatistics(const std::string &bus) const {
+    const domain::BusStatistics *TransportCatalogue::GetBusStatistics(const std::string &bus) const {
         if (bus_to_statistics.count(bus)) {
             return bus_to_statistics.at(bus);
         }
@@ -60,7 +60,7 @@ namespace transport_catalogue {
         }
     }
 
-    const TransportCatalogue::Stop *TransportCatalogue::GetStop(const std::string &stop) const {
+    const domain::Stop *TransportCatalogue::GetStop(const std::string &stop) const {
         if (stop_to_coords.count(stop)) {
             return stop_to_coords.at(stop);
         } else {
