@@ -3,48 +3,46 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace std;
-
-void transport_catalogue::requests::PrintBus(const string& bus, transport_catalogue::TransportCatalogue* t_cat) {
-    auto Bus = t_cat->GetBus(bus);
+void transport_catalogue::requests::PrintBus(const std::string& bus, transport_catalogue::TransportCatalogue* t_cat, std::ostream& out) {
+    auto Bus = t_cat->GetBusStatistics(bus);
     if (Bus != nullptr) {
-        cout << "Bus " << Bus->bus_name << ": " << Bus->all_stops << " stops on route, "
+        out << "Bus " << bus << ": " << Bus->all_stops << " stops on route, "
              << Bus->unique_stops << " unique stops, "
              << Bus->route_length << " route length, "
-             << setprecision(6) << Bus->curvature << " curvature" << endl;
+             << std::setprecision(6) << Bus->curvature << " curvature" << std::endl;
     } else {
-        cout << "Bus " << bus << ": not found" << endl;
+        out << "Bus " << bus << ": not found" << std::endl;
     }
 }
 
-void transport_catalogue::requests::PrintStop(const string& stop, transport_catalogue::TransportCatalogue* t_cat) {
+void transport_catalogue::requests::PrintStop(const std::string& stop, transport_catalogue::TransportCatalogue* t_cat, std::ostream& out) {
     auto Stop = t_cat->GetStop(stop);
     if (Stop != nullptr) {
         const std::set<std::string_view>& buses = t_cat->GetBusesForExistingStop(stop);
         if (buses.empty()) {
-            cout << "Stop " << stop << ": no buses" << endl;
+            out << "Stop " << stop << ": no buses" << std::endl;
         } else {
-            cout << "Stop " << stop << ": buses" ;
+            out << "Stop " << stop << ": buses" ;
             for (auto bus : buses) {
-                cout << " " << bus;
+                out << " " << bus;
             }
-            cout << endl;
+            out << std::endl;
         }
     } else {
-        cout << "Stop " << stop << ": not found" << endl;
+        out << "Stop " << stop << ": not found" << std::endl;
     }
 }
 
-void transport_catalogue::requests::ReadOutputRequests(int number_output, transport_catalogue::TransportCatalogue* t_cat) {
+void transport_catalogue::requests::ReadOutputRequests(int number_output, transport_catalogue::TransportCatalogue* t_cat, std::istream& in, std::ostream& out) {
     for (int i = 0; i < number_output; ++i) {
-        string entity_name, instance_name;
-        cin >> entity_name;
-        getline(cin, instance_name);
+        std::string entity_name, instance_name;
+        in >> entity_name;
+        getline(in, instance_name);
         transport_catalogue::details::DeleteSpaces(instance_name);
         if (entity_name == "Bus") {
-            PrintBus(instance_name, t_cat);
+            PrintBus(instance_name, t_cat, out);
         } else if (entity_name == "Stop") {
-            PrintStop(instance_name, t_cat);
+            PrintStop(instance_name, t_cat, out);
         }
     }
 }
