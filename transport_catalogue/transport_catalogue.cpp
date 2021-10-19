@@ -11,9 +11,10 @@ namespace transport_catalogue {
         stop_to_buses[stops_.back().stop_name];
     }
 
-    void TransportCatalogue::AddBus(const std::string &bus, const std::deque<std::string> &route) {
+    void TransportCatalogue::AddBus(const std::string &bus, const std::deque<std::string> &route, bool is_roundtrip) {
         domain::Bus bus_struct;
         domain::BusStatistics bus_stat_struct;
+        bus_stat_struct.is_roundtrip = is_roundtrip;
         double straight_dist = 0;
         bus_struct.bus_name = bus;
         bus_stat_struct.all_stops = route.size();
@@ -82,4 +83,45 @@ namespace transport_catalogue {
         }
     }
 
+    std::vector<std::string_view> TransportCatalogue::GetBusNames() const {
+        std::vector<std::string_view> result;
+        for (auto [bus, descr] : bus_to_description) {
+            result.push_back(bus);
+        }
+        return result;
+    }
+
+    std::unordered_map<std::string_view, const domain::Bus *> TransportCatalogue::GetBusToDescription() const {
+        return bus_to_description;
+    }
+
+    std::unordered_map<std::string_view, const domain::Stop *> TransportCatalogue::GetStopToCoords() const {
+        return stop_to_coords;
+    }
+
+    std::vector<geo::Coordinates> TransportCatalogue::GetCoordsOfStopsWithBuses() const {
+        std::vector<geo::Coordinates> result;
+        for (const auto& [stop, buses] : stop_to_buses) {
+            if (!buses.empty()) {
+                result.push_back(stop_to_coords.at(stop)->coordinates);
+            }
+        }
+        return result;
+    }
+
+    std::unordered_map<std::string_view, const domain::BusStatistics *> TransportCatalogue::GetBusToStatistics() const {
+        return bus_to_statistics;
+    }
+
+    std::unordered_map<std::string_view, std::set<std::string_view>> TransportCatalogue::GetStopToBuses() const {
+        return stop_to_buses;
+    }
+
+    std::vector<std::string_view> TransportCatalogue::GetStops() const {
+        std::vector<std::string_view> result;
+        for (auto [stop, buses] : stop_to_buses) {
+            result.push_back(stop);
+        }
+        return result;
+    }
 }

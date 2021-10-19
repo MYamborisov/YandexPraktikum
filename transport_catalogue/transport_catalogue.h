@@ -14,7 +14,7 @@ namespace transport_catalogue {
     public:
         void AddStop(domain::Stop &stop);
 
-        void AddBus(const std::string &bus, const std::deque<std::string> &route);
+        void AddBus(const std::string &bus, const std::deque<std::string> &route, bool is_roundtrip);
 
         void SetDistance(const std::string &from, const std::string &to, int dist);
 
@@ -27,6 +27,20 @@ namespace transport_catalogue {
         const std::set<std::string_view> &GetBusesForExistingStop(const std::string &stop) const;
 
         int GetDistance(const std::string &from, const std::string &to) const;
+
+        std::vector<std::string_view> GetBusNames() const;
+
+        std::unordered_map<std::string_view, const domain::Stop *> GetStopToCoords() const;
+
+        std::unordered_map<std::string_view, const domain::Bus *> GetBusToDescription() const;
+
+        std::vector<geo::Coordinates> GetCoordsOfStopsWithBuses() const;
+
+        std::unordered_map<std::string_view, const domain::BusStatistics *> GetBusToStatistics() const;
+
+        std::unordered_map<std::string_view, std::set<std::string_view>> GetStopToBuses() const;
+
+        std::vector<std::string_view> GetStops() const;
 
     private:
 

@@ -380,6 +380,8 @@ namespace json {
                     out << '\\' << '\"';
                 } else if (symbol == '\\') {
                     out << '\\' << '\\';
+                } else if (symbol == '\n') {
+                    out << '\\' << 'n';
                 } else {
                     out << symbol;
                 }

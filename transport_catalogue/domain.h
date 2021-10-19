@@ -17,6 +17,7 @@ namespace domain {
         int unique_stops = 0;
         int route_length = 0;
         double curvature = 1;
+        bool is_roundtrip = false;
     };
 
     struct Stop {
