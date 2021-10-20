@@ -2,7 +2,6 @@
 
 #include "svg.h"
 #include "domain.h"
-#include "transport_catalogue.h"
 
 #include <cmath>
 #include <algorithm>
@@ -27,6 +26,12 @@ namespace renderer {
         svg::Color underlayer_color;
         double underlayer_width = 0;
         std::vector<svg::Color> color_palette;
+    };
+
+    struct RenderData {
+        std::vector<std::string_view> stops;
+        std::vector<std::string_view> buses;
+        std::vector<geo::Coordinates> points;
     };
 
     class SphereProjector {
@@ -87,11 +92,19 @@ namespace renderer {
     class MapRenderer {
     public:
         void SetSettings(RenderSettings settings);
-        void BuildMap(const transport_catalogue::TransportCatalogue& db);
-        const svg::Document& Render() const;
+        svg::Document Render(domain::DataPack data) const;
     private:
         RenderSettings settings_;
-        svg::Document document_;
+
+        RenderData PreProcessData(const domain::DataPack& raw_data) const;
+        void RenderRouteLines(const SphereProjector& projector, svg::Document& document,
+                              const domain::DataPack& raw_data, const RenderData& data) const;
+        void RenderBusNames(const SphereProjector& projector, svg::Document& document,
+                            const domain::DataPack& raw_data, const RenderData& data) const;
+        void RenderStopSymbols(const SphereProjector& projector, svg::Document& document,
+                            const domain::DataPack& raw_data, const RenderData& data) const;
+        void RenderStopNames(const SphereProjector& projector, svg::Document& document,
+                               const domain::DataPack& raw_data, const RenderData& data) const;
     };
 
 }

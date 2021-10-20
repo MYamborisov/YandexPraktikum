@@ -2,15 +2,9 @@
 
 #include <sstream>
 
-using Distances = std::deque<std::tuple<std::string, std::string, int>>;
-
 using namespace std::literals;
 
-void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& in, std::ostream& out, renderer::MapRenderer& map_renderer) {
-
-    Distances distances;
-    json::Document doc = json::Load(in);
-
+void ReadBaseRequests(json::Document& doc, Distances& distances, transport_catalogue::TransportCatalogue *t_cat) {
     for (const auto& request : doc.GetRoot().AsMap().at("base_requests").AsArray()) {
         if (request.AsMap().at("type").AsString() == "Stop") {
             domain::Stop stop;
@@ -18,7 +12,7 @@ void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& 
             stop.coordinates.lat = request.AsMap().at("latitude").AsDouble();
             stop.coordinates.lng = request.AsMap().at("longitude").AsDouble();
             for (auto [to, dist] : request.AsMap().at("road_distances").AsMap()) {
-                distances.emplace_back(stop.stop_name, to, dist.AsDouble());
+                distances.emplace_back(stop.stop_name, to, dist.AsInt());
             }
             t_cat->AddStop(stop);
         }
@@ -40,57 +34,56 @@ void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& 
             t_cat->AddBus(request.AsMap().at("name"s).AsString(), deq, request.AsMap().at("is_roundtrip").AsBool());
         }
     }
+}
 
-    {
-        renderer::RenderSettings settings;
-        auto settings_map = doc.GetRoot().AsMap().at("render_settings").AsMap();
+void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer) {
+    renderer::RenderSettings settings;
+    auto settings_map = doc.GetRoot().AsMap().at("render_settings").AsMap();
 
-        settings.width = settings_map.at("width"s).AsDouble();
-        settings.height = settings_map.at("height"s).AsDouble();
-        settings.padding = settings_map.at("padding"s).AsDouble();
-        settings.line_width = settings_map.at("line_width"s).AsDouble();
-        settings.stop_radius = settings_map.at("stop_radius"s).AsDouble();
-        settings.bus_label_font_size = settings_map.at("bus_label_font_size"s).AsInt();
-        settings.bus_label_offset = {settings_map.at("bus_label_offset"s).AsArray()[0].AsDouble(),
-                                     settings_map.at("bus_label_offset"s).AsArray()[1].AsDouble()};
-        settings.stop_label_font_size = settings_map.at("stop_label_font_size"s).AsInt();
-        settings.stop_label_offset = {settings_map.at("stop_label_offset"s).AsArray()[0].AsDouble(),
-                                     settings_map.at("stop_label_offset"s).AsArray()[1].AsDouble()};
-        if (settings_map.at("underlayer_color"s).IsString()) {
-            settings.underlayer_color = settings_map.at("underlayer_color"s).AsString();
-        } else if(settings_map.at("underlayer_color"s).AsArray().size() == 3) {
-            auto arr = settings_map.at("underlayer_color"s).AsArray();
-            settings.underlayer_color = svg::Rgb(arr[0].AsInt(), arr[1].AsInt(), arr[2].AsInt());
+    settings.width = settings_map.at("width"s).AsDouble();
+    settings.height = settings_map.at("height"s).AsDouble();
+    settings.padding = settings_map.at("padding"s).AsDouble();
+    settings.line_width = settings_map.at("line_width"s).AsDouble();
+    settings.stop_radius = settings_map.at("stop_radius"s).AsDouble();
+    settings.bus_label_font_size = settings_map.at("bus_label_font_size"s).AsInt();
+    settings.bus_label_offset = {settings_map.at("bus_label_offset"s).AsArray()[0].AsDouble(),
+                                 settings_map.at("bus_label_offset"s).AsArray()[1].AsDouble()};
+    settings.stop_label_font_size = settings_map.at("stop_label_font_size"s).AsInt();
+    settings.stop_label_offset = {settings_map.at("stop_label_offset"s).AsArray()[0].AsDouble(),
+                                  settings_map.at("stop_label_offset"s).AsArray()[1].AsDouble()};
+    if (settings_map.at("underlayer_color"s).IsString()) {
+        settings.underlayer_color = settings_map.at("underlayer_color"s).AsString();
+    } else if(settings_map.at("underlayer_color"s).AsArray().size() == 3) {
+        auto arr = settings_map.at("underlayer_color"s).AsArray();
+        settings.underlayer_color = svg::Rgb(arr[0].AsInt(), arr[1].AsInt(), arr[2].AsInt());
+    } else {
+        auto arr = settings_map.at("underlayer_color"s).AsArray();
+        settings.underlayer_color = svg::Rgba(arr[0].AsInt(), arr[1].AsInt(), arr[2].AsInt(), arr[3].AsDouble());
+    }
+    settings.underlayer_width = settings_map.at("underlayer_width"s).AsDouble();
+    for (const auto& color : settings_map.at("color_palette"s).AsArray()) {
+        if (color.IsString()) {
+            settings.color_palette.emplace_back(color.AsString());
+        } else if (color.AsArray().size() == 3) {
+            settings.color_palette.emplace_back(svg::Rgb(color.AsArray()[0].AsInt(), color.AsArray()[1].AsInt(), color.AsArray()[2].AsInt()));
         } else {
-            auto arr = settings_map.at("underlayer_color"s).AsArray();
-            settings.underlayer_color = svg::Rgba(arr[0].AsInt(), arr[1].AsInt(), arr[2].AsInt(), arr[3].AsDouble());
+            settings.color_palette.emplace_back(svg::Rgba(color.AsArray()[0].AsInt(), color.AsArray()[1].AsInt(), color.AsArray()[2].AsInt(), color.AsArray()[3].AsDouble()));
         }
-        settings.underlayer_width = settings_map.at("underlayer_width"s).AsDouble();
-        for (const auto& color : settings_map.at("color_palette"s).AsArray()) {
-            if (color.IsString()) {
-                settings.color_palette.emplace_back(color.AsString());
-            } else if (color.AsArray().size() == 3) {
-                settings.color_palette.emplace_back(svg::Rgb(color.AsArray()[0].AsInt(), color.AsArray()[1].AsInt(), color.AsArray()[2].AsInt()));
-            } else {
-                settings.color_palette.emplace_back(svg::Rgba(color.AsArray()[0].AsInt(), color.AsArray()[1].AsInt(), color.AsArray()[2].AsInt(), color.AsArray()[3].AsDouble()));
-            }
-        }
-
-        map_renderer.SetSettings(std::move(settings));
-        map_renderer.BuildMap(*t_cat);
     }
 
+    map_renderer.SetSettings(std::move(settings));
+}
+
+json::Document ReadStatRequests(json::Document& doc, RequestHandler request_handler) {
     json::Array arr;
     for (const auto& request : doc.GetRoot().AsMap().at("stat_requests").AsArray()) {
         json::Dict dict;
         dict["request_id"] = request.AsMap().at("id").AsInt();
         if (request.AsMap().at("type").AsString() == "Stop") {
             const std::string& stop = request.AsMap().at("name").AsString();
-            auto Stop = t_cat->GetStop(stop);
-            if (Stop != nullptr) {
-                const std::set<std::string_view>& buses = t_cat->GetBusesForExistingStop(stop);
+            if (auto buses = request_handler.GetBusesByStop(stop)) {
                 json::Array arr_buses;
-                for (auto bus : buses) {
+                for (auto bus : buses.value()) {
                     arr_buses.emplace_back(static_cast<std::string>(bus));
                 }
                 dict["buses"] = move(arr_buses);
@@ -99,8 +92,7 @@ void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& 
             }
         } else if (request.AsMap().at("type").AsString() == "Bus") {
             const std::string& bus = request.AsMap().at("name").AsString();
-            auto Bus = t_cat->GetBusStatistics(bus);
-            if (Bus != nullptr) {
+            if (auto Bus = request_handler.GetBusStat(bus)) {
                 dict["curvature"] = Bus->curvature;
                 dict["route_length"] = Bus->route_length;
                 dict["stop_count"] = Bus->all_stops;
@@ -110,12 +102,24 @@ void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& 
             }
         } else if (request.AsMap().at("type").AsString() == "Map") {
             std::stringstream ss;
-            map_renderer.Render().Render(ss);
+            request_handler.RenderMap().Render(ss);
             dict["map"] = ss.str();
         }
         arr.push_back(move(dict));
     }
-    json::Document doc_out(move(arr));
+    return {arr};
+}
+
+void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& in,
+                  std::ostream& out, renderer::MapRenderer& map_renderer, RequestHandler request_handler) {
+
+    Distances distances;
+    json::Document doc = json::Load(in);
+
+    ReadBaseRequests(doc, distances, t_cat);
+    ReadRenderSettings(doc,map_renderer);
+    json::Document doc_out = ReadStatRequests(doc, request_handler);
+
     json::Print(doc_out, out);
 }
 

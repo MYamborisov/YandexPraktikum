@@ -44,15 +44,7 @@ namespace transport_catalogue {
         dist_between_stops[pair] = dist;
     }
 
-    const domain::Bus *TransportCatalogue::GetBus(const std::string &bus) const {
-        if (bus_to_description.count(bus)) {
-            return bus_to_description.at(bus);
-        } else {
-            return nullptr;
-        }
-    }
-
-    const domain::BusStatistics *TransportCatalogue::GetBusStatistics(const std::string &bus) const {
+    const domain::BusStatistics *TransportCatalogue::GetBusStatistics(const std::string_view &bus) const {
         if (bus_to_statistics.count(bus)) {
             return bus_to_statistics.at(bus);
         }
@@ -61,16 +53,11 @@ namespace transport_catalogue {
         }
     }
 
-    const domain::Stop *TransportCatalogue::GetStop(const std::string &stop) const {
-        if (stop_to_coords.count(stop)) {
-            return stop_to_coords.at(stop);
-        } else {
-            return nullptr;
+    std::optional<std::set<std::string_view>> TransportCatalogue::GetBusesByStop(const std::string_view &stop) const {
+        if (stop_to_buses.count(stop)) {
+            return stop_to_buses.at(stop);
         }
-    }
-
-    const std::set<std::string_view> &TransportCatalogue::GetBusesForExistingStop(const std::string &stop) const {
-        return stop_to_buses.at(stop);
+        return std::nullopt;
     }
 
     int TransportCatalogue::GetDistance(const std::string &from, const std::string &to) const {
@@ -83,45 +70,10 @@ namespace transport_catalogue {
         }
     }
 
-    std::vector<std::string_view> TransportCatalogue::GetBusNames() const {
-        std::vector<std::string_view> result;
-        for (auto [bus, descr] : bus_to_description) {
-            result.push_back(bus);
-        }
-        return result;
-    }
-
-    std::unordered_map<std::string_view, const domain::Bus *> TransportCatalogue::GetBusToDescription() const {
-        return bus_to_description;
-    }
-
-    std::unordered_map<std::string_view, const domain::Stop *> TransportCatalogue::GetStopToCoords() const {
-        return stop_to_coords;
-    }
-
-    std::vector<geo::Coordinates> TransportCatalogue::GetCoordsOfStopsWithBuses() const {
-        std::vector<geo::Coordinates> result;
-        for (const auto& [stop, buses] : stop_to_buses) {
-            if (!buses.empty()) {
-                result.push_back(stop_to_coords.at(stop)->coordinates);
-            }
-        }
-        return result;
-    }
-
-    std::unordered_map<std::string_view, const domain::BusStatistics *> TransportCatalogue::GetBusToStatistics() const {
-        return bus_to_statistics;
-    }
-
-    std::unordered_map<std::string_view, std::set<std::string_view>> TransportCatalogue::GetStopToBuses() const {
-        return stop_to_buses;
-    }
-
-    std::vector<std::string_view> TransportCatalogue::GetStops() const {
-        std::vector<std::string_view> result;
-        for (auto [stop, buses] : stop_to_buses) {
-            result.push_back(stop);
-        }
-        return result;
+    domain::DataPack TransportCatalogue::GetDataPack() const {
+        return {stop_to_coords,
+                bus_to_description,
+                bus_to_statistics,
+                stop_to_buses};
     }
 }

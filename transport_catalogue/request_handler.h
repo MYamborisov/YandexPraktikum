@@ -14,7 +14,7 @@ public:
     std::optional<domain::BusStatistics> GetBusStat(const std::string_view& bus_name) const;
 
     // Возвращает маршруты, проходящие через
-    const std::set<std::string_view> GetBusesByStop(const std::string_view& stop_name) const;
+    std::optional<std::set<std::string_view>> GetBusesByStop(const std::string_view& stop_name) const;
 
     // Этот метод будет нужен в следующей части итогового проекта
     svg::Document RenderMap() const;
