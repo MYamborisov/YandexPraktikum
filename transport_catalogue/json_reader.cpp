@@ -4,34 +4,44 @@
 
 using namespace std::literals;
 
+domain::Stop ReadStopInfo(Distances& distances, const json::Node request) {
+    domain::Stop stop;
+    stop.stop_name = request.AsMap().at("name").AsString();
+    stop.coordinates.lat = request.AsMap().at("latitude").AsDouble();
+    stop.coordinates.lng = request.AsMap().at("longitude").AsDouble();
+    for (auto [to, dist] : request.AsMap().at("road_distances").AsMap()) {
+        distances.emplace_back(stop.stop_name, to, dist.AsInt());
+    }
+    return stop;
+}
+
+std::deque<std::string> ReadBusInfo(const json::Node request) {
+    std::deque<std::string> route;
+    for (const auto& stop : request.AsMap().at("stops").AsArray()) {
+        route.push_back(stop.AsString());
+    }
+    if (!request.AsMap().at("is_roundtrip"s).AsBool()) {
+        for (int i = route.size() - 2; i >= 0; --i) {
+            route.push_back(route[i]);
+        }
+    }
+    return route;
+}
+
 void ReadBaseRequests(json::Document& doc, Distances& distances, transport_catalogue::TransportCatalogue *t_cat) {
     for (const auto& request : doc.GetRoot().AsMap().at("base_requests").AsArray()) {
         if (request.AsMap().at("type").AsString() == "Stop") {
-            domain::Stop stop;
-            stop.stop_name = request.AsMap().at("name").AsString();
-            stop.coordinates.lat = request.AsMap().at("latitude").AsDouble();
-            stop.coordinates.lng = request.AsMap().at("longitude").AsDouble();
-            for (auto [to, dist] : request.AsMap().at("road_distances").AsMap()) {
-                distances.emplace_back(stop.stop_name, to, dist.AsInt());
-            }
+            domain::Stop stop = std::move(ReadStopInfo(distances, request));
             t_cat->AddStop(stop);
         }
     }
-    for (const auto& [stop1, stop2, dist] : distances) {
-        t_cat->SetDistance(stop1, stop2, dist);
+    for (const auto& [stop_from, stop_to, dist] : distances) {
+        t_cat->SetDistance(stop_from, stop_to, dist);
     }
     for (const auto& request : doc.GetRoot().AsMap().at("base_requests").AsArray()) {
         if (request.AsMap().at("type").AsString() == "Bus") {
-            std::deque<std::string> deq;
-            for (const auto& stop : request.AsMap().at("stops").AsArray()) {
-                deq.push_back(stop.AsString());
-            }
-            if (!request.AsMap().at("is_roundtrip"s).AsBool()) {
-                for (int i = deq.size() - 2; i >= 0; --i) {
-                    deq.push_back(deq[i]);
-                }
-            }
-            t_cat->AddBus(request.AsMap().at("name"s).AsString(), deq, request.AsMap().at("is_roundtrip").AsBool());
+            std::deque<std::string> route = std::move(ReadBusInfo(request));
+            t_cat->AddBus(request.AsMap().at("name"s).AsString(), route, request.AsMap().at("is_roundtrip").AsBool());
         }
     }
 }
@@ -53,7 +63,7 @@ void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer
                                   settings_map.at("stop_label_offset"s).AsArray()[1].AsDouble()};
     if (settings_map.at("underlayer_color"s).IsString()) {
         settings.underlayer_color = settings_map.at("underlayer_color"s).AsString();
-    } else if(settings_map.at("underlayer_color"s).AsArray().size() == 3) {
+    } else if(settings_map.at("underlayer_color"s).AsArray().size() == 3u) {
         auto arr = settings_map.at("underlayer_color"s).AsArray();
         settings.underlayer_color = svg::Rgb(arr[0].AsInt(), arr[1].AsInt(), arr[2].AsInt());
     } else {
@@ -64,7 +74,7 @@ void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer
     for (const auto& color : settings_map.at("color_palette"s).AsArray()) {
         if (color.IsString()) {
             settings.color_palette.emplace_back(color.AsString());
-        } else if (color.AsArray().size() == 3) {
+        } else if (color.AsArray().size() == 3u) {
             settings.color_palette.emplace_back(svg::Rgb(color.AsArray()[0].AsInt(), color.AsArray()[1].AsInt(), color.AsArray()[2].AsInt()));
         } else {
             settings.color_palette.emplace_back(svg::Rgba(color.AsArray()[0].AsInt(), color.AsArray()[1].AsInt(), color.AsArray()[2].AsInt(), color.AsArray()[3].AsDouble()));
@@ -74,38 +84,57 @@ void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer
     map_renderer.SetSettings(std::move(settings));
 }
 
+void ReadStopRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
+    json::Dict result;
+    result["request_id"] = request.AsMap().at("id").AsInt();
+    const std::string& stop = request.AsMap().at("name").AsString();
+    if (auto buses = request_handler.GetBusesByStop(stop)) {
+        json::Array arr_buses;
+        for (auto bus : buses.value()) {
+            arr_buses.emplace_back(static_cast<std::string>(bus));
+        }
+        result["buses"] = move(arr_buses);
+    } else {
+        result["error_message"] = "not found"s;
+    }
+    arr.push_back(move(result));
+}
+
+void ReadBusRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
+    json::Dict result;
+    result["request_id"] = request.AsMap().at("id").AsInt();
+    const std::string& bus = request.AsMap().at("name").AsString();
+    if (auto bus_stat = request_handler.GetBusStat(bus)) {
+        result["curvature"] = bus_stat->curvature;
+        result["route_length"] = bus_stat->route_length;
+        result["stop_count"] = bus_stat->all_stops;
+        result["unique_stop_count"] = bus_stat->unique_stops;
+    } else {
+        result["error_message"] = "not found"s;
+    }
+    arr.push_back(move(result));
+}
+
+void ReadMapRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
+    json::Dict result;
+    result["request_id"] = request.AsMap().at("id").AsInt();
+    std::stringstream ss;
+    request_handler.RenderMap().Render(ss);
+    result["map"] = ss.str();
+    arr.push_back(move(result));
+}
+
 json::Document ReadStatRequests(json::Document& doc, RequestHandler request_handler) {
     json::Array arr;
     for (const auto& request : doc.GetRoot().AsMap().at("stat_requests").AsArray()) {
-        json::Dict dict;
-        dict["request_id"] = request.AsMap().at("id").AsInt();
         if (request.AsMap().at("type").AsString() == "Stop") {
-            const std::string& stop = request.AsMap().at("name").AsString();
-            if (auto buses = request_handler.GetBusesByStop(stop)) {
-                json::Array arr_buses;
-                for (auto bus : buses.value()) {
-                    arr_buses.emplace_back(static_cast<std::string>(bus));
-                }
-                dict["buses"] = move(arr_buses);
-            } else {
-                dict["error_message"] = "not found"s;
-            }
+            ReadStopRequest(arr, request, request_handler);
         } else if (request.AsMap().at("type").AsString() == "Bus") {
-            const std::string& bus = request.AsMap().at("name").AsString();
-            if (auto Bus = request_handler.GetBusStat(bus)) {
-                dict["curvature"] = Bus->curvature;
-                dict["route_length"] = Bus->route_length;
-                dict["stop_count"] = Bus->all_stops;
-                dict["unique_stop_count"] = Bus->unique_stops;
-            } else {
-                dict["error_message"] = "not found"s;
-            }
+            ReadBusRequest(arr, request, request_handler);
         } else if (request.AsMap().at("type").AsString() == "Map") {
-            std::stringstream ss;
-            request_handler.RenderMap().Render(ss);
-            dict["map"] = ss.str();
+            ReadMapRequest(arr, request, request_handler);
         }
-        arr.push_back(move(dict));
+
     }
     return {arr};
 }

@@ -100,24 +100,43 @@ namespace svg {
         ~PathProps() = default;
 
         void RenderAttrs(std::ostream& out) const {
-            using namespace std::literals;
+            RenderFillColor(out);
+            RenderStrokeColor(out);
+            RenderStrokeWidth(out);
+            RenderStrokeLinecap(out);
+            RenderStrokeLinejoin(out);
+        }
 
+        void RenderFillColor(std::ostream& out) const {
+            using namespace std::literals;
             if (fill_color_) {
                 out << " fill=\""sv;
                 visit(ColorPrinter{out}, *fill_color_);
                 out << "\""sv;
             }
+        }
+        void RenderStrokeColor(std::ostream& out) const {
+            using namespace std::literals;
             if (stroke_color_) {
                 out << " stroke=\""sv;
                 visit(ColorPrinter{out}, *stroke_color_);
                 out << "\""sv;
             }
+        }
+        void RenderStrokeWidth(std::ostream& out) const {
+            using namespace std::literals;
             if (stroke_width_) {
                 out << " stroke-width=\""sv << *stroke_width_ << "\""sv;
             }
+        }
+        void RenderStrokeLinecap(std::ostream& out) const {
+            using namespace std::literals;
             if (stroke_linecap_) {
                 out << " stroke-linecap=\""sv << *stroke_linecap_ << "\""sv;
             }
+        }
+        void RenderStrokeLinejoin(std::ostream& out) const {
+            using namespace std::literals;
             if (stroke_linejoin_) {
                 out << " stroke-linejoin=\""sv << *stroke_linejoin_ << "\""sv;
             }
