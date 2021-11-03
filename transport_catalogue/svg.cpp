@@ -27,13 +27,13 @@ namespace svg {
     std::ostream& operator<<(std::ostream& out, StrokeLineCap value) {
         switch (value) {
             case StrokeLineCap::BUTT:
-                out << "butt";
+                out << "butt"s;
                 break;
             case StrokeLineCap::ROUND:
-                out << "round";
+                out << "round"s;
                 break;
             case StrokeLineCap::SQUARE:
-                out << "square";
+                out << "square"s;
                 break;
         }
         return out;
@@ -42,19 +42,19 @@ namespace svg {
     std::ostream& operator<<(std::ostream& out, StrokeLineJoin value) {
         switch (value) {
             case StrokeLineJoin::ARCS:
-                out << "arcs";
+                out << "arcs"s;
                 break;
             case StrokeLineJoin::BEVEL:
-                out << "bevel";
+                out << "bevel"s;
                 break;
             case StrokeLineJoin::MITER:
-                out << "miter";
+                out << "miter"s;
                 break;
             case StrokeLineJoin::MITER_CLIP:
-                out << "miter-clip";
+                out << "miter-clip"s;
                 break;
             case StrokeLineJoin::ROUND:
-                out << "round";
+                out << "round"s;
                 break;
         }
         return out;
@@ -144,26 +144,26 @@ namespace svg {
 
     void Text::RenderObject(const RenderContext& context) const {
         auto& out = context.out;
-        out << "<text x=\""sv << position_.x << "\" y=\"" << position_.y << "\" dx=\"" << offset_.x << "\" dy=\"" << offset_.y << "\" font-size=\"" << size_ << "\"";
+        out << "<text x=\""sv << position_.x << "\" y=\""sv << position_.y << "\" dx=\""sv << offset_.x << "\" dy=\""sv << offset_.y << "\" font-size=\""sv << size_ << "\""sv;
         if (!font_family_.empty()) {
-            out << " font-family=\"" << font_family_ << "\"";
+            out << " font-family=\""sv << font_family_ << "\""sv;
         }
         if (!font_weight_.empty()) {
-            out << " font-weight=\"" << font_weight_ << "\"";
+            out << " font-weight=\""sv << font_weight_ << "\""sv;
         }
         RenderAttrs(context.out);
         out << '>';
         for (const auto& symbol : data_) {
             if (symbol == '"') {
-                out << "&quot;";
+                out << "&quot;"sv;
             } else if (symbol == '\'') {
-                out << "&apos;";
+                out << "&apos;"sv;
             } else if (symbol == '<') {
-                out << "&lt;";
+                out << "&lt;"sv;
             } else if (symbol == '>') {
-                out << "&gt;";
+                out << "&gt;"sv;
             } else if (symbol == '&') {
-                out << "&amp;";
+                out << "&amp;"sv;
             } else {
                 out << symbol;
             }

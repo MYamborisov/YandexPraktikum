@@ -2,6 +2,8 @@
 
 #include <utility>
 
+using namespace std::literals;
+
 namespace renderer {
 
     bool IsZero(double value) {
@@ -53,8 +55,8 @@ namespace renderer {
             background.SetPosition(projector(raw_data.stop_to_coords.at(raw_data.bus_to_description.at(data.buses[i])->route[0])->coordinates))
                     .SetOffset({settings_.bus_label_offset.first, settings_.bus_label_offset.second})
                     .SetFontSize(settings_.bus_label_font_size)
-                    .SetFontFamily("Verdana")
-                    .SetFontWeight("bold")
+                    .SetFontFamily("Verdana"s)
+                    .SetFontWeight("bold"s)
                     .SetData(static_cast<std::string>(data.buses[i]));
             svg::Text text = background;
             background.SetFillColor(settings_.underlayer_color)
@@ -82,7 +84,7 @@ namespace renderer {
         for (const auto& stop : data.stops) {
             document.Add(svg::Circle().SetCenter(projector(raw_data.stop_to_coords.at(stop)->coordinates))
                                   .SetRadius(settings_.stop_radius)
-                                  .SetFillColor("white"));
+                                  .SetFillColor("white"s));
         }
     }
 
@@ -93,7 +95,7 @@ namespace renderer {
             background.SetPosition(projector(raw_data.stop_to_coords.at(stop)->coordinates))
                     .SetOffset({settings_.stop_label_offset.first, settings_.stop_label_offset.second})
                     .SetFontSize(settings_.stop_label_font_size)
-                    .SetFontFamily("Verdana")
+                    .SetFontFamily("Verdana"s)
                     .SetData(static_cast<std::string>(stop));
             svg::Text text = background;
             background.SetFillColor(settings_.underlayer_color)
@@ -101,7 +103,7 @@ namespace renderer {
                     .SetStrokeWidth(settings_.underlayer_width)
                     .SetStrokeLineCap(svg::StrokeLineCap::ROUND)
                     .SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
-            text.SetFillColor("black");
+            text.SetFillColor("black"s);
             document.Add(background);
             document.Add(text);
         }

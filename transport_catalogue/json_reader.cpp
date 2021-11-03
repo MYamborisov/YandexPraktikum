@@ -7,10 +7,10 @@ using namespace std::literals;
 
 domain::Stop ReadStopInfo(Distances& distances, const json::Node request) {
     domain::Stop stop;
-    stop.stop_name = request.AsDict().at("name").AsString();
-    stop.coordinates.lat = request.AsDict().at("latitude").AsDouble();
-    stop.coordinates.lng = request.AsDict().at("longitude").AsDouble();
-    for (auto [to, dist] : request.AsDict().at("road_distances").AsDict()) {
+    stop.stop_name = request.AsDict().at("name"s).AsString();
+    stop.coordinates.lat = request.AsDict().at("latitude"s).AsDouble();
+    stop.coordinates.lng = request.AsDict().at("longitude"s).AsDouble();
+    for (auto [to, dist] : request.AsDict().at("road_distances"s).AsDict()) {
         distances.emplace_back(stop.stop_name, to, dist.AsInt());
     }
     return stop;
@@ -18,7 +18,7 @@ domain::Stop ReadStopInfo(Distances& distances, const json::Node request) {
 
 std::deque<std::string> ReadBusInfo(const json::Node request) {
     std::deque<std::string> route;
-    for (const auto& stop : request.AsDict().at("stops").AsArray()) {
+    for (const auto& stop : request.AsDict().at("stops"s).AsArray()) {
         route.push_back(stop.AsString());
     }
     if (!request.AsDict().at("is_roundtrip"s).AsBool()) {
@@ -30,8 +30,8 @@ std::deque<std::string> ReadBusInfo(const json::Node request) {
 }
 
 void ReadBaseRequests(json::Document& doc, Distances& distances, transport_catalogue::TransportCatalogue *t_cat) {
-    for (const auto& request : doc.GetRoot().AsDict().at("base_requests").AsArray()) {
-        if (request.AsDict().at("type").AsString() == "Stop") {
+    for (const auto& request : doc.GetRoot().AsDict().at("base_requests"s).AsArray()) {
+        if (request.AsDict().at("type"s).AsString() == "Stop"s) {
             domain::Stop stop = std::move(ReadStopInfo(distances, request));
             t_cat->AddStop(stop);
         }
@@ -39,17 +39,17 @@ void ReadBaseRequests(json::Document& doc, Distances& distances, transport_catal
     for (const auto& [stop_from, stop_to, dist] : distances) {
         t_cat->SetDistance(stop_from, stop_to, dist);
     }
-    for (const auto& request : doc.GetRoot().AsDict().at("base_requests").AsArray()) {
-        if (request.AsDict().at("type").AsString() == "Bus") {
+    for (const auto& request : doc.GetRoot().AsDict().at("base_requests"s).AsArray()) {
+        if (request.AsDict().at("type"s).AsString() == "Bus"s) {
             std::deque<std::string> route = std::move(ReadBusInfo(request));
-            t_cat->AddBus(request.AsDict().at("name"s).AsString(), route, request.AsDict().at("is_roundtrip").AsBool());
+            t_cat->AddBus(request.AsDict().at("name"s).AsString(), route, request.AsDict().at("is_roundtrip"s).AsBool());
         }
     }
 }
 
 void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer) {
     renderer::RenderSettings settings;
-    auto settings_map = doc.GetRoot().AsDict().at("render_settings").AsDict();
+    auto settings_map = doc.GetRoot().AsDict().at("render_settings"s).AsDict();
 
     settings.width = settings_map.at("width"s).AsDouble();
     settings.height = settings_map.at("height"s).AsDouble();
@@ -87,7 +87,7 @@ void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer
 
 void ReadStopRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
     json::Dict result;
-    const std::string& stop = request.AsDict().at("name").AsString();
+    const std::string& stop = request.AsDict().at("name"s).AsString();
     if (auto buses = request_handler.GetBusesByStop(stop)) {
         json::Array arr_buses;
         for (auto bus : buses.value()) {
@@ -95,15 +95,15 @@ void ReadStopRequest(json::Array& arr, const json::Node& request, RequestHandler
         }
         result = json::Builder{}
                 .StartDict()
-                .Key("request_id").Value(request.AsDict().at("id").AsInt())
-                .Key("buses").Value(move(arr_buses))
+                .Key("request_id"s).Value(request.AsDict().at("id"s).AsInt())
+                .Key("buses"s).Value(move(arr_buses))
                 .EndDict()
                 .Build().AsDict();
     } else {
         result = json::Builder{}
                 .StartDict()
-                .Key("request_id").Value(request.AsDict().at("id").AsInt())
-                .Key("error_message").Value("not found")
+                .Key("request_id"s).Value(request.AsDict().at("id"s).AsInt())
+                .Key("error_message"s).Value("not found"s)
                 .EndDict()
                 .Build().AsDict();
     }
@@ -112,22 +112,22 @@ void ReadStopRequest(json::Array& arr, const json::Node& request, RequestHandler
 
 void ReadBusRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
     json::Dict result;
-    const std::string& bus = request.AsDict().at("name").AsString();
+    const std::string& bus = request.AsDict().at("name"s).AsString();
     if (auto bus_stat = request_handler.GetBusStat(bus)) {
         result = json::Builder{}
                 .StartDict()
-                .Key("request_id").Value(request.AsDict().at("id").AsInt())
-                .Key("curvature").Value(bus_stat->curvature)
-                .Key("route_length").Value(bus_stat->route_length)
-                .Key("stop_count").Value(bus_stat->all_stops)
-                .Key("unique_stop_count").Value(bus_stat->unique_stops)
+                .Key("request_id"s).Value(request.AsDict().at("id"s).AsInt())
+                .Key("curvature"s).Value(bus_stat->curvature)
+                .Key("route_length"s).Value(bus_stat->route_length)
+                .Key("stop_count"s).Value(bus_stat->all_stops)
+                .Key("unique_stop_count"s).Value(bus_stat->unique_stops)
                 .EndDict()
                 .Build().AsDict();
     } else {
         result = json::Builder{}
                 .StartDict()
-                .Key("request_id").Value(request.AsDict().at("id").AsInt())
-                .Key("error_message").Value("not found")
+                .Key("request_id"s).Value(request.AsDict().at("id"s).AsInt())
+                .Key("error_message"s).Value("not found"s)
                 .EndDict()
                 .Build().AsDict();
     }
@@ -140,8 +140,8 @@ void ReadMapRequest(json::Array& arr, const json::Node& request, RequestHandler 
     request_handler.RenderMap().Render(ss);
     result = json::Builder{}
             .StartDict()
-            .Key("request_id").Value(request.AsDict().at("id").AsInt())
-            .Key("map").Value(ss.str())
+            .Key("request_id"s).Value(request.AsDict().at("id"s).AsInt())
+            .Key("map"s).Value(ss.str())
             .EndDict()
             .Build().AsDict();
     arr.emplace_back(move(result));
@@ -149,12 +149,12 @@ void ReadMapRequest(json::Array& arr, const json::Node& request, RequestHandler 
 
 json::Document ReadStatRequests(json::Document& doc, RequestHandler request_handler) {
     json::Array arr;
-    for (const auto& request : doc.GetRoot().AsDict().at("stat_requests").AsArray()) {
-        if (request.AsDict().at("type").AsString() == "Stop") {
+    for (const auto& request : doc.GetRoot().AsDict().at("stat_requests"s).AsArray()) {
+        if (request.AsDict().at("type"s).AsString() == "Stop"s) {
             ReadStopRequest(arr, request, request_handler);
-        } else if (request.AsDict().at("type").AsString() == "Bus") {
+        } else if (request.AsDict().at("type"s).AsString() == "Bus"s) {
             ReadBusRequest(arr, request, request_handler);
-        } else if (request.AsDict().at("type").AsString() == "Map") {
+        } else if (request.AsDict().at("type"s).AsString() == "Map"s) {
             ReadMapRequest(arr, request, request_handler);
         }
 
