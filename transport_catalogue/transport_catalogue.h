@@ -29,15 +29,6 @@ namespace transport_catalogue {
 
     private:
 
-        struct PairStopHasher {
-            size_t operator()(const std::pair<const domain::Stop *, const domain::Stop *> &pair) const {
-                return static_cast<size_t>(pair.first->coordinates.lat
-                                           + 37 * pair.first->coordinates.lng
-                                           + 37 * 37 * pair.second->coordinates.lat
-                                           + 37 * 37 * 37 * pair.second->coordinates.lng);
-            }
-        };
-
         std::deque<domain::Bus> buses_;
         std::deque<domain::Stop> stops_;
         std::deque<domain::BusStatistics> statistics_;
@@ -45,7 +36,7 @@ namespace transport_catalogue {
         std::unordered_map<std::string_view, const domain::Bus *> bus_to_description;
         std::unordered_map<std::string_view, const domain::BusStatistics *> bus_to_statistics;
         std::unordered_map<std::string_view, std::set<std::string_view>> stop_to_buses;
-        std::unordered_map<std::pair<const domain::Stop *, const domain::Stop *>, int, PairStopHasher> dist_between_stops;
+        std::unordered_map<std::pair<const domain::Stop *, const domain::Stop *>, int, domain::PairStopHasher> dist_between_stops;
     };
 
 }

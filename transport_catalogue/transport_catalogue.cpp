@@ -74,6 +74,7 @@ namespace transport_catalogue {
         return {stop_to_coords,
                 bus_to_description,
                 bus_to_statistics,
-                stop_to_buses};
+                stop_to_buses,
+                dist_between_stops};
     }
 }

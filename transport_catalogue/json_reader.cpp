@@ -29,7 +29,8 @@ std::deque<std::string> ReadBusInfo(const json::Node request) {
     return route;
 }
 
-void ReadBaseRequests(json::Document& doc, Distances& distances, transport_catalogue::TransportCatalogue *t_cat) {
+void ReadBaseRequests(json::Document& doc, transport_catalogue::TransportCatalogue *t_cat) {
+    Distances distances;
     for (const auto& request : doc.GetRoot().AsDict().at("base_requests"s).AsArray()) {
         if (request.AsDict().at("type"s).AsString() == "Stop"s) {
             domain::Stop stop = std::move(ReadStopInfo(distances, request));
@@ -85,7 +86,17 @@ void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer
     map_renderer.SetSettings(std::move(settings));
 }
 
-void ReadStopRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
+void ReadRoutingSettings(json::Document& doc, TransportRouter& router) {
+    RoutingSettings settings;
+    auto route_settings = doc.GetRoot().AsDict().at("routing_settings"s).AsDict();
+
+    settings.bus_velocity = route_settings.at("bus_velocity"s).AsDouble();
+    settings.bus_wait_time = route_settings.at("bus_wait_time"s).AsInt();
+
+    router.SetSettings(settings);
+}
+
+void ReadStopRequest(json::Array& arr, const json::Node& request, const RequestHandler& request_handler) {
     json::Dict result;
     const std::string& stop = request.AsDict().at("name"s).AsString();
     if (auto buses = request_handler.GetBusesByStop(stop)) {
@@ -110,7 +121,7 @@ void ReadStopRequest(json::Array& arr, const json::Node& request, RequestHandler
     arr.emplace_back(move(result));
 }
 
-void ReadBusRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
+void ReadBusRequest(json::Array& arr, const json::Node& request, const RequestHandler& request_handler) {
     json::Dict result;
     const std::string& bus = request.AsDict().at("name"s).AsString();
     if (auto bus_stat = request_handler.GetBusStat(bus)) {
@@ -134,7 +145,7 @@ void ReadBusRequest(json::Array& arr, const json::Node& request, RequestHandler 
     arr.emplace_back(move(result));
 }
 
-void ReadMapRequest(json::Array& arr, const json::Node& request, RequestHandler request_handler) {
+void ReadMapRequest(json::Array& arr, const json::Node& request, const RequestHandler& request_handler) {
     json::Dict result;
     std::stringstream ss;
     request_handler.RenderMap().Render(ss);
@@ -147,8 +158,52 @@ void ReadMapRequest(json::Array& arr, const json::Node& request, RequestHandler 
     arr.emplace_back(move(result));
 }
 
-json::Document ReadStatRequests(json::Document& doc, RequestHandler request_handler) {
+void ReadRouteRequest(json::Array& arr, const json::Node& request, const RequestHandler& request_handler) {
+    json::Dict result;
+    const std::string& from = request.AsDict().at("from"s).AsString();
+    const std::string& to = request.AsDict().at("to"s).AsString();
+    if (auto eff_route = request_handler.ComputeEfficientRoute(from, to)) {
+        json::Array items;
+        for (const auto& item : eff_route->items) {
+            json::Dict wait_item_dict = json::Builder{}
+                        .StartDict()
+                        .Key("type"s).Value("Wait"s)
+                        .Key("stop_name"s).Value(item.first.stop_name)
+                        .Key("time"s).Value(item.first.time)
+                        .EndDict()
+                        .Build().AsDict();
+            items.emplace_back(move(wait_item_dict));
+            json::Dict bus_item_dict = json::Builder{}
+                        .StartDict()
+                        .Key("type"s).Value("Bus"s)
+                        .Key("bus"s).Value(item.second.bus)
+                        .Key("span_count"s).Value(item.second.span_count)
+                        .Key("time"s).Value(item.second.time)
+                        .EndDict()
+                        .Build().AsDict();
+            items.emplace_back(move(bus_item_dict));
+        }
+        result = json::Builder{}
+                .StartDict()
+                .Key("request_id"s).Value(request.AsDict().at("id"s).AsInt())
+                .Key("total_time"s).Value(eff_route->total_time)
+                .Key("items"s).Value(move(items))
+                .EndDict()
+                .Build().AsDict();
+    } else {
+        result = json::Builder{}
+                .StartDict()
+                .Key("request_id"s).Value(request.AsDict().at("id"s).AsInt())
+                .Key("error_message"s).Value("not found"s)
+                .EndDict()
+                .Build().AsDict();
+    }
+    arr.emplace_back(move(result));
+}
+
+json::Document ReadStatRequests(json::Document& doc, const RequestHandler& request_handler) {
     json::Array arr;
+    int cnt = 0;
     for (const auto& request : doc.GetRoot().AsDict().at("stat_requests"s).AsArray()) {
         if (request.AsDict().at("type"s).AsString() == "Stop"s) {
             ReadStopRequest(arr, request, request_handler);
@@ -156,20 +211,23 @@ json::Document ReadStatRequests(json::Document& doc, RequestHandler request_hand
             ReadBusRequest(arr, request, request_handler);
         } else if (request.AsDict().at("type"s).AsString() == "Map"s) {
             ReadMapRequest(arr, request, request_handler);
+        } else if (request.AsDict().at("type"s).AsString() == "Route"s) {
+            ReadRouteRequest(arr, request, request_handler);
         }
-
+        std::cout << cnt++;
     }
     return json::Document(json::Node(arr));
 }
 
 void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& in,
-                  std::ostream& out, renderer::MapRenderer& map_renderer, RequestHandler request_handler) {
+                  std::ostream& out, renderer::MapRenderer& map_renderer, const RequestHandler& request_handler,
+                  TransportRouter& router) {
 
-    Distances distances;
     json::Document doc = json::Load(in);
 
-    ReadBaseRequests(doc, distances, t_cat);
+    ReadBaseRequests(doc, t_cat);
     ReadRenderSettings(doc,map_renderer);
+    ReadRoutingSettings(doc, router);
     json::Document doc_out = ReadStatRequests(doc, request_handler);
 
     json::Print(doc_out, out);
