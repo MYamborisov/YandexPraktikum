@@ -66,7 +66,7 @@ TransportRouter::TransportRouter(RoutingSettings settings, domain::DataPack data
 std::optional<domain::EfficientRoute>
 TransportRouter::ComputeEfficientRoute(const std::string_view &from, const std::string_view &to) const {
 
-    if (!data_.stop_to_buses.count(from) || !data_.stop_to_buses.count(to)) {
+    if (!data_.stop_to_buses.count(from) || !data_.stop_to_buses.count(to) || data_.stop_to_buses.at(from).empty() || data_.stop_to_buses.at(to).empty()) {
         return std::nullopt;
     }
 

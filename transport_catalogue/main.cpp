@@ -1,6 +1,7 @@
 #include "json_reader.h"
 
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
