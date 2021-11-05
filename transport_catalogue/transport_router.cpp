@@ -6,25 +6,13 @@ void TransportRouter::SetSettings(RoutingSettings settings) {
     settings_ = settings;
 }
 
-std::optional<domain::EfficientRoute>
-TransportRouter::ComputeEfficientRoute(const std::string_view &from, const std::string_view &to,
-                                       domain::DataPack data) const {
+TransportRouter::TransportRouter(RoutingSettings settings, domain::DataPack data) {
+    settings_ = settings;
 
-    if (!data.stop_to_buses.count(from) || !data.stop_to_buses.count(to)) {
-        return std::nullopt;
-    }
-
-    auto buses_from = data.stop_to_buses.at(from);
-    auto buses_to = data.stop_to_buses.at(to);
-
-    std::vector<std::string_view> buses_union;
-
-    set_union(buses_from.begin(), buses_from.end(),
-              buses_to.begin(), buses_to.end(),
-              back_inserter(buses_union));
+    data_ = data;
 
     std::unordered_set<std::string_view> vertecies;
-    for (auto bus : buses_union) {
+    for (auto [bus, stat] : data.bus_to_statistics) {
         for (auto stop : data.bus_to_description.at(bus)->route) {
             vertecies.insert(stop);
         }
@@ -32,14 +20,9 @@ TransportRouter::ComputeEfficientRoute(const std::string_view &from, const std::
 
     graph::DirectedWeightedGraph<double> graph(vertecies.size());
 
-    std::unordered_map<size_t, std::string_view> edge_id_to_bus;
-    std::unordered_map<size_t, size_t> edge_id_to_span_count;
-    std::unordered_map<std::string_view, size_t> stop_to_id;
-    std::unordered_map<size_t, std::string_view> id_to_stop;
-
     size_t v_cntr = 0;
 
-    for (auto bus : buses_union) {
+    for (auto [bus, stat] : data.bus_to_statistics) {
         auto route = data.bus_to_description.at(bus)->route;
         std::vector<double> prefix_sum(route.size());
         prefix_sum[0] = 0;
@@ -76,20 +59,29 @@ TransportRouter::ComputeEfficientRoute(const std::string_view &from, const std::
             }
         }
     }
+    graph_ = std::make_unique<graph::DirectedWeightedGraph<double>>(graph);
+    router_ = std::make_unique<graph::Router<double>>(*graph_);
+}
 
-    graph::Router<double> router(graph);
-    auto route_info = router.BuildRoute(stop_to_id.at(from), stop_to_id.at(to));
+std::optional<domain::EfficientRoute>
+TransportRouter::ComputeEfficientRoute(const std::string_view &from, const std::string_view &to) const {
+
+    if (!data_.stop_to_buses.count(from) || !data_.stop_to_buses.count(to)) {
+        return std::nullopt;
+    }
+
+    auto route_info = router_->BuildRoute(stop_to_id.at(from), stop_to_id.at(to));
     if (route_info) {
         domain::EfficientRoute result;
         result.total_time = route_info->weight;
         for (auto edge_id : route_info->edges) {
             domain::WaitItem wait_item;
             wait_item.time = settings_.bus_wait_time;
-            wait_item.stop_name = id_to_stop[graph.GetEdge(edge_id).from];
+            wait_item.stop_name = id_to_stop.at(graph_->GetEdge(edge_id).from);
             domain::BusItem bus_item;
-            bus_item.time = graph.GetEdge(edge_id).weight - settings_.bus_wait_time;
-            bus_item.bus = edge_id_to_bus[edge_id];
-            bus_item.span_count = edge_id_to_span_count[edge_id];
+            bus_item.time = graph_->GetEdge(edge_id).weight - settings_.bus_wait_time;
+            bus_item.bus = edge_id_to_bus.at(edge_id);
+            bus_item.span_count = edge_id_to_span_count.at(edge_id);
             result.items.emplace_back(wait_item, bus_item);
         }
         return result;
