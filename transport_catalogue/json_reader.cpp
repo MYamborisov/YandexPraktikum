@@ -86,16 +86,13 @@ void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer
     map_renderer.SetSettings(std::move(settings));
 }
 
-std::unique_ptr<TransportRouter> ReadRoutingSettings(json::Document& doc, transport_catalogue::TransportCatalogue *t_cat) {
+void ReadRoutingSettings(json::Document& doc, transport_catalogue::TransportCatalogue *t_cat, TransportRouter& router) {
     RoutingSettings settings;
     auto route_settings = doc.GetRoot().AsDict().at("routing_settings"s).AsDict();
-
     settings.bus_velocity = route_settings.at("bus_velocity"s).AsDouble();
     settings.bus_wait_time = route_settings.at("bus_wait_time"s).AsInt();
-    //TransportRouter router(settings, t_cat->GetDataPack());
-    std::unique_ptr<TransportRouter> result_ptr = std::make_unique<TransportRouter>(settings, t_cat->GetDataPack());
-    //router.SetSettings(settings);
-    return result_ptr;
+    router.SetSettings(settings);
+    router.ComputeGraph(t_cat->GetDataPack());
 }
 
 void ReadStopRequest(json::Array& arr, const json::Node& request, const RequestHandler& request_handler) {
@@ -160,11 +157,11 @@ void ReadMapRequest(json::Array& arr, const json::Node& request, const RequestHa
     arr.emplace_back(move(result));
 }
 
-void ReadRouteRequest(json::Array& arr, const json::Node& request, const TransportRouter& router) {
+void ReadRouteRequest(json::Array& arr, const json::Node& request,const RequestHandler& request_handler) {
     json::Dict result;
     const std::string& from = request.AsDict().at("from"s).AsString();
     const std::string& to = request.AsDict().at("to"s).AsString();
-    if (auto eff_route = router.ComputeEfficientRoute(from, to)) {
+    if (auto eff_route = request_handler.ComputeEfficientRoute(from, to)) {
         json::Array items;
         for (const auto& item : eff_route->items) {
             json::Dict wait_item_dict = json::Builder{}
@@ -203,7 +200,7 @@ void ReadRouteRequest(json::Array& arr, const json::Node& request, const Transpo
     arr.emplace_back(move(result));
 }
 
-json::Document ReadStatRequests(json::Document& doc, const RequestHandler& request_handler, std::unique_ptr<TransportRouter> router) {
+json::Document ReadStatRequests(json::Document& doc, const RequestHandler& request_handler) {
     json::Array arr;
     for (const auto& request : doc.GetRoot().AsDict().at("stat_requests"s).AsArray()) {
         if (request.AsDict().at("type"s).AsString() == "Stop"s) {
@@ -213,21 +210,21 @@ json::Document ReadStatRequests(json::Document& doc, const RequestHandler& reque
         } else if (request.AsDict().at("type"s).AsString() == "Map"s) {
             ReadMapRequest(arr, request, request_handler);
         } else if (request.AsDict().at("type"s).AsString() == "Route"s) {
-            ReadRouteRequest(arr, request, *router);
+            ReadRouteRequest(arr, request, request_handler);
         }
     }
     return json::Document(json::Node(arr));
 }
 
 void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& in,
-                  std::ostream& out, renderer::MapRenderer& map_renderer, const RequestHandler& request_handler) {
+                  std::ostream& out, renderer::MapRenderer& map_renderer, TransportRouter& router, const RequestHandler& request_handler) {
 
     json::Document doc = json::Load(in);
 
     ReadBaseRequests(doc, t_cat);
     ReadRenderSettings(doc,map_renderer);
-    auto ptr_router = ReadRoutingSettings(doc, t_cat);
-    json::Document doc_out = ReadStatRequests(doc, request_handler, move(ptr_router));
+    ReadRoutingSettings(doc, t_cat, router);
+    json::Document doc_out = ReadStatRequests(doc, request_handler);
 
     json::Print(doc_out, out);
 }

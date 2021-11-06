@@ -8,7 +8,8 @@ using namespace std;
 int main() {
     transport_catalogue::TransportCatalogue db;
     renderer::MapRenderer map_renderer;
-    RequestHandler request_handler(db, map_renderer);
-    ReadRequests(&db, cin, cout, map_renderer, request_handler);
+    TransportRouter transport_router;
+    RequestHandler request_handler(db, map_renderer, transport_router);
+    ReadRequests(&db, cin, cout, map_renderer, transport_router, request_handler);
     return 0;
 }

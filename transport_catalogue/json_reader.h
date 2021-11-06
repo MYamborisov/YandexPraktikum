@@ -12,9 +12,9 @@ void ReadBaseRequests(json::Document& doc, transport_catalogue::TransportCatalog
 
 void ReadRenderSettings(json::Document& doc, renderer::MapRenderer& map_renderer);
 
-std::unique_ptr<TransportRouter> ReadRoutingSettings(json::Document& doc, transport_catalogue::TransportCatalogue *t_cat);
+void ReadRoutingSettings(json::Document& doc, transport_catalogue::TransportCatalogue *t_cat, TransportRouter& router);
 
-json::Document ReadStatRequests(json::Document& doc, const RequestHandler& request_handler, std::unique_ptr<TransportRouter> router);
+json::Document ReadStatRequests(json::Document& doc, const RequestHandler& request_handler);
 
 void ReadRequests(transport_catalogue::TransportCatalogue *t_cat, std::istream& in,
-                  std::ostream& out, renderer::MapRenderer& map_renderer, const RequestHandler& request_handler);
+                  std::ostream& out, renderer::MapRenderer& map_renderer, TransportRouter& router, const RequestHandler& request_handler);
