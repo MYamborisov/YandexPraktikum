@@ -34,23 +34,23 @@ void TransportRouter::ComputeGraph(domain::DataPack data) {
     for (auto [bus, stat] : data_.bus_to_statistics) {
         auto route = data_.bus_to_description.at(bus)->route;
         std::vector<double> prefix_sum = ComputePrefixSum(route);
-        for (int i = 0; i < route.size() - 1; ++i) {
+        for (int i = 0; i < static_cast<int>(route.size()) - 1; ++i) {
             for (int j = i + 1; j < route.size(); ++j) {
-                if (!stop_to_id.count(route[i])) {
-                    id_to_stop[vertices_cntr] = route[i];
-                    stop_to_id[route[i]] = vertices_cntr++;
+                if (!stop_to_id_.count(route[i])) {
+                    id_to_stop_[vertices_cntr] = route[i];
+                    stop_to_id_[route[i]] = vertices_cntr++;
                 }
-                if (!stop_to_id.count(route[j])) {
-                    id_to_stop[vertices_cntr] = route[j];
-                    stop_to_id[route[j]] = vertices_cntr++;
+                if (!stop_to_id_.count(route[j])) {
+                    id_to_stop_[vertices_cntr] = route[j];
+                    stop_to_id_[route[j]] = vertices_cntr++;
                 }
                 graph::Edge<double> edge;
-                edge.from = stop_to_id.at(route[i]);
-                edge.to = stop_to_id.at(route[j]);
+                edge.from = stop_to_id_.at(route[i]);
+                edge.to = stop_to_id_.at(route[j]);
                 edge.weight = prefix_sum[j] - prefix_sum[i] + settings_.bus_wait_time;
                 size_t edge_id = graph.AddEdge(edge);
-                edge_id_to_bus[edge_id] = bus;
-                edge_id_to_span_count[edge_id] = j - i;
+                edge_id_to_bus_[edge_id] = bus;
+                edge_id_to_span_count_[edge_id] = j - i;
             }
         }
     }
@@ -65,18 +65,18 @@ TransportRouter::ComputeEfficientRoute(const std::string_view &from, const std::
         return std::nullopt;
     }
 
-    auto route_info = router_->BuildRoute(stop_to_id.at(from), stop_to_id.at(to));
+    auto route_info = router_->BuildRoute(stop_to_id_.at(from), stop_to_id_.at(to));
     if (route_info) {
         domain::EfficientRoute result;
         result.total_time = route_info->weight;
         for (auto edge_id : route_info->edges) {
             domain::WaitItem wait_item;
             wait_item.time = settings_.bus_wait_time;
-            wait_item.stop_name = id_to_stop.at(graph_.GetEdge(edge_id).from);
+            wait_item.stop_name = id_to_stop_.at(graph_.GetEdge(edge_id).from);
             domain::BusItem bus_item;
             bus_item.time = graph_.GetEdge(edge_id).weight - settings_.bus_wait_time;
-            bus_item.bus = edge_id_to_bus.at(edge_id);
-            bus_item.span_count = edge_id_to_span_count.at(edge_id);
+            bus_item.bus = edge_id_to_bus_.at(edge_id);
+            bus_item.span_count = edge_id_to_span_count_.at(edge_id);
             result.items.emplace_back(wait_item, bus_item);
         }
         return result;

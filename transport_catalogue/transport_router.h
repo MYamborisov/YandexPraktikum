@@ -19,10 +19,10 @@ private:
     std::vector<double> ComputePrefixSum(const std::deque<std::string_view>& route);
 
     RoutingSettings settings_;
-    std::unordered_map<size_t, std::string_view> edge_id_to_bus;
-    std::unordered_map<size_t, size_t> edge_id_to_span_count;
-    std::unordered_map<std::string_view, size_t> stop_to_id;
-    std::unordered_map<size_t, std::string_view> id_to_stop;
+    std::unordered_map<size_t, std::string_view> edge_id_to_bus_;
+    std::unordered_map<size_t, size_t> edge_id_to_span_count_;
+    std::unordered_map<std::string_view, size_t> stop_to_id_;
+    std::unordered_map<size_t, std::string_view> id_to_stop_;
     graph::DirectedWeightedGraph<double> graph_;
     std::unique_ptr<graph::Router<double>> router_ = nullptr;
     domain::DataPack data_;
